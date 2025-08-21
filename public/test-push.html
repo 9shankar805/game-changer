@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Push Test</title>
+</head>
+<body>
+    <button onclick="subscribe()">Subscribe</button>
+    <button onclick="testPush()">Test Push</button>
+    
+    <script>
+        let subscription = null;
+        
+        async function subscribe() {
+            const registration = await navigator.serviceWorker.register('/sw.js');
+            await navigator.serviceWorker.ready;
+            
+            subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: 'BG5V1u2eNls8IInm93_F-ZBb2hXaEZIy4AjHBrIjDeClqi4wLVlVZ5x64WeMzFESgByQjeOtcL1UrGMGFQm0GlE'
+            });
+            
+            await fetch('/api/push/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subscription, userId: 'test' })
+            });
+            
+            alert('Subscribed!');
+        }
+        
+        async function testPush() {
+            const response = await fetch('/api/test/simple-push', { method: 'POST' });
+            const result = await response.json();
+            alert(result.message);
+        }
+    </script>
+</body>
+</html>

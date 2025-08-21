@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Google Authentication</title>
+</head>
+<body>
+    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+        <h3>Authenticating with Google...</h3>
+        <p>Please wait while we complete your sign-in.</p>
+    </div>
+    
+    <script>
+        // Extract authorization code from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const error = urlParams.get('error');
+        
+        if (error) {
+            // Send error to parent window
+            window.opener.postMessage({
+                type: 'GOOGLE_AUTH_ERROR',
+                error: error
+            }, window.location.origin);
+            window.close();
+        } else if (code) {
+            // Create demo user (in real app, exchange code for user info)
+            const user = {
+                googleId: 'google_' + Date.now(),
+                email: 'user@gmail.com',
+                name: 'Google User',
+                picture: 'https://via.placeholder.com/150'
+            };
+            
+            // Send success to parent window
+            window.opener.postMessage({
+                type: 'GOOGLE_AUTH_SUCCESS',
+                user: user
+            }, window.location.origin);
+            window.close();
+        } else {
+            // No code or error
+            window.opener.postMessage({
+                type: 'GOOGLE_AUTH_ERROR',
+                error: 'No authorization code received'
+            }, window.location.origin);
+            window.close();
+        }
+    </script>
+</body>
+</html>
