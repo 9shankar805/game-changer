@@ -64,10 +64,7 @@ export const pool = new Pool({
   
   // Connection lifecycle for managed databases
   allowExitOnIdle: false,
-  maxUses: isDigitalOcean ? 500 : 5000, // Rotate connections more frequently
-  
-  // Retry configuration
-  connectionTimeoutMillis: isDigitalOcean ? 60000 : 15000
+  maxUses: isDigitalOcean ? 500 : 5000 // Rotate connections more frequently
 });
 
 // Enhanced error handling with automatic recovery

@@ -312,7 +312,7 @@ export default function Cart() {
 
       toast({
         title: "Delivery Fee Calculated",
-        description: `₹${result.fee} for ${formatDistance(distance)} delivery`,
+        description: `RS ${result.fee} for ${formatDistance(distance)} delivery`,
       });
 
     } catch (error) {
@@ -424,7 +424,7 @@ export default function Cart() {
 
       toast({
         title: "Delivery Fee Calculated",
-        description: `₹${result.fee} for ${formatDistance(distance)} delivery to ${geocodingResult.formattedAddress || deliveryAddress}`,
+        description: `RS ${result.fee} for ${formatDistance(distance)} delivery to ${geocodingResult.formattedAddress || deliveryAddress}`,
       });
 
     } catch (error) {

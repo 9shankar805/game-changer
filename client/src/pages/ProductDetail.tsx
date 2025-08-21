@@ -55,29 +55,37 @@ export default function ProductDetail() {
   useEffect(() => {
     const getUserLocationAndCalculateDistance = async () => {
       try {
-        const location = await getCurrentUserLocation();
-        setUserLocation(location);
+        // Import the enhanced location utility
+        const { getUserLocationWithFallback } = await import('@/lib/location-utils');
+        const locationResult = await getUserLocationWithFallback();
         
-        if (store?.latitude && store?.longitude) {
-          const storeLatitude = parseFloat(store.latitude);
-          const storeLongitude = parseFloat(store.longitude);
+        if (locationResult.success && locationResult.location) {
+          setUserLocation(locationResult.location);
           
-          if (!isNaN(storeLatitude) && !isNaN(storeLongitude)) {
-            // Calculate distance using Haversine formula
-            const R = 6371; // Earth's radius in kilometers
-            const dLat = (storeLatitude - location.latitude) * Math.PI / 180;
-            const dLon = (storeLongitude - location.longitude) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(location.latitude * Math.PI / 180) * Math.cos(storeLatitude * Math.PI / 180) *
-                      Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            const distance = R * c;
+          if (store?.latitude && store?.longitude) {
+            const storeLatitude = parseFloat(store.latitude);
+            const storeLongitude = parseFloat(store.longitude);
             
-            setStoreDistance(distance);
+            if (!isNaN(storeLatitude) && !isNaN(storeLongitude)) {
+              // Calculate distance using Haversine formula
+              const R = 6371; // Earth's radius in kilometers
+              const dLat = (storeLatitude - locationResult.location.latitude) * Math.PI / 180;
+              const dLon = (storeLongitude - locationResult.location.longitude) * Math.PI / 180;
+              const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                        Math.cos(locationResult.location.latitude * Math.PI / 180) * Math.cos(storeLatitude * Math.PI / 180) *
+                        Math.sin(dLon/2) * Math.sin(dLon/2);
+              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+              const distance = R * c;
+              
+              setStoreDistance(distance);
+            }
           }
+        } else {
+          // Location access denied or not available - don't show distance
+          setStoreDistance(null);
         }
       } catch (error) {
-        // Location access denied or not available
+        console.log('Location not available for distance calculation');
         setStoreDistance(null);
       }
     };
@@ -97,10 +105,33 @@ export default function ProductDetail() {
         description: `${quantity} ${product.name}(s) added to your cart.`,
       });
     } catch (error) {
+      console.error('Add to cart error:', error);
+      
+      let errorMessage = "Failed to add to cart";
+      if (error instanceof Error) {
+        if (error.message.includes('authentication') || error.message.includes('login')) {
+          errorMessage = "Please log in to add items to cart";
+        } else if (error.message.includes('stock') || error.message.includes('inventory')) {
+          errorMessage = "This item is currently out of stock";
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = "Network error. Please check your connection and try again";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to add to cart",
+        description: errorMessage,
         variant: "destructive",
+        action: error instanceof Error && error.message.includes('login') ? (
+          <button 
+            onClick={() => window.location.href = '/login'}
+            className="bg-white text-black px-3 py-1 rounded text-sm"
+          >
+            Login
+          </button>
+        ) : undefined,
       });
     }
   };

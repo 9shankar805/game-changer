@@ -168,33 +168,53 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const removeFromCart = async (cartItemId: number) => {
-    if (!user) {
-      // Handle guest cart
-      const guestCart = JSON.parse(localStorage.getItem('guestCart') || '[]');
-      const filteredCart = guestCart.filter((item: any) => item.id !== cartItemId);
-      localStorage.setItem('guestCart', JSON.stringify(filteredCart));
-      playSound.cartRemove();
-      await refreshCart();
-      return;
-    }
-
     try {
-      // Optimistically remove from UI first
-      setCartItems(prev => prev.filter(item => item.id !== cartItemId));
+      // Check if item exists in current cart before attempting removal
+      const existingItem = cartItems.find(item => item.id === cartItemId);
+      if (!existingItem) {
+        console.log(`Cart item ${cartItemId} not found in current cart, skipping removal`);
+        await refreshCart();
+        return;
+      }
+
+      console.log(`Attempting to remove cart item ID: ${cartItemId}`);
       
       const response = await fetch(`/api/cart/${cartItemId}`, {
         method: "DELETE",
       });
 
-      if (response.ok) {
-        playSound.cartRemove();
-      } else {
-        // If failed, refresh to get correct state
-        await refreshCart();
+      if (!response.ok) {
+        const errorData = await response.json();
+        
+        if (response.status === 404) {
+          // Item already removed, just refresh cart silently
+          console.log("Item already removed, refreshing cart");
+          await refreshCart();
+          return;
+        }
+        
+        console.error(`Failed to remove cart item ${cartItemId}:`, errorData);
+        throw new Error(errorData.error || "Failed to remove item from cart");
       }
-    } catch (error) {
-      // If error, refresh to get correct state
+
+      console.log(`Successfully removed cart item ${cartItemId}`);
+      
+      // Play sound effect for removing from cart
+      playSound.cartRemove();
+      
       await refreshCart();
+    } catch (error) {
+      // Only log if it's not a 404 (already handled above)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (!errorMessage.includes("already removed")) {
+        console.error("Remove from cart error:", error);
+      }
+      // Still refresh cart to sync state
+      await refreshCart();
+      // Don't throw error for 404s to prevent UI error states
+      if (!errorMessage.includes("Cart item not found")) {
+        throw error;
+      }
     }
   };
 
